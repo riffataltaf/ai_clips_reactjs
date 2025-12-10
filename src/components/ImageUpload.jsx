@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Loader2, Sparkles, Download, RefreshCw, FileImage, User, Wand2, Megaphone, ShoppingBag } from 'lucide-react';
+import { Upload, X, Loader2, Sparkles, Download, RefreshCw, FileImage, User, Wand2, Megaphone, ShoppingBag, AlertCircle } from 'lucide-react';
+import {
+    removeBackground,
+    enhanceImage,
+    createBanner,
+    createProfile,
+    createAdCreative,
+    createProductPhoto
+} from '../services/localImageProcessor';
 
 const actionButtons = [
     { id: 'enhance', label: 'Product Enhance', icon: Sparkles, color: 'from-violet-500 to-purple-600' },
@@ -17,6 +25,8 @@ const ImageUpload = () => {
     const [generatedImage, setGeneratedImage] = useState(null);
     const [selectedAction, setSelectedAction] = useState(null);
     const [dragActive, setDragActive] = useState(false);
+    const [error, setError] = useState(null);
+    const [progressText, setProgressText] = useState('');
 
     const handleDrag = (e) => {
         e.preventDefault();
@@ -34,9 +44,14 @@ const ImageUpload = () => {
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
-            setSelectedImage(URL.createObjectURL(file));
-            setGeneratedImage(null);
-            setSelectedAction(null);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setSelectedImage(event.target.result);
+                setGeneratedImage(null);
+                setSelectedAction(null);
+                setError(null);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -44,13 +59,18 @@ const ImageUpload = () => {
         e.preventDefault();
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setSelectedImage(URL.createObjectURL(file));
-            setGeneratedImage(null);
-            setSelectedAction(null);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setSelectedImage(event.target.result);
+                setGeneratedImage(null);
+                setSelectedAction(null);
+                setError(null);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
-    const handleActionClick = (action) => {
+    const handleActionClick = async (action) => {
         if (!selectedImage) {
             document.getElementById('image-upload').click();
             return;
@@ -58,166 +78,88 @@ const ImageUpload = () => {
 
         setSelectedAction(action);
         setIsGenerating(true);
+        setError(null);
+        setProgressText('');
 
+        try {
+            let result;
+
+            switch (action.id) {
+                case 'background':
+                    // Remove Background using free local AI
+                    result = await removeBackground(selectedImage, (progress) => {
+                        setProgressText(progress);
+                    });
+                    break;
+
+                case 'enhance':
+                    // Enhance image quality
+                    result = await enhanceImage(selectedImage);
+                    break;
+
+                case 'banner':
+                    // Create marketing banner
+                    result = await createBanner(selectedImage);
+                    break;
+
+                case 'profile':
+                    // Create profile picture
+                    result = await createProfile(selectedImage);
+                    break;
+
+                case 'ad':
+                    // Create ad creative
+                    result = await createAdCreative(selectedImage);
+                    break;
+
+                case 'product':
+                    // Create product photo
+                    result = await createProductPhoto(selectedImage);
+                    break;
+
+                default:
+                    result = await enhanceImage(selectedImage);
+            }
+
+            setGeneratedImage(result);
+        } catch (err) {
+            console.error('Generation Error:', err);
+            setError('Processing failed. Please try again with a different image.');
+        } finally {
+            setIsGenerating(false);
+            setProgressText('');
+        }
+    };
+
+    // Fallback canvas processing if API fails
+    const fallbackCanvasProcessing = (action) => {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
+            canvas.width = img.width;
+            canvas.height = img.height;
+
             switch (action.id) {
-                case 'banner': {
-                    // Create wide banner (1200x628 - Facebook ad size)
-                    canvas.width = 1200;
-                    canvas.height = 628;
-
-                    // Gradient background
-                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                    gradient.addColorStop(0, '#6366f1');
-                    gradient.addColorStop(0.5, '#8b5cf6');
-                    gradient.addColorStop(1, '#a855f7');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Add decorative circles
-                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                    ctx.beginPath();
-                    ctx.arc(100, 100, 150, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(canvas.width - 150, canvas.height - 100, 200, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Draw product image in center
-                    const scale = Math.min(400 / img.width, 400 / img.height);
-                    const newWidth = img.width * scale;
-                    const newHeight = img.height * scale;
-                    const x = (canvas.width - newWidth) / 2;
-                    const y = (canvas.height - newHeight) / 2;
-
-                    // White background for product
-                    ctx.fillStyle = 'white';
-                    ctx.shadowColor = 'rgba(0,0,0,0.3)';
-                    ctx.shadowBlur = 30;
-                    ctx.fillRect(x - 20, y - 20, newWidth + 40, newHeight + 40);
-                    ctx.shadowBlur = 0;
-
-                    ctx.drawImage(img, x, y, newWidth, newHeight);
-                    break;
-                }
-
-                case 'profile': {
-                    // Create square profile (500x500)
-                    canvas.width = 500;
-                    canvas.height = 500;
-
-                    // Gradient background
-                    const gradient = ctx.createRadialGradient(250, 250, 0, 250, 250, 350);
-                    gradient.addColorStop(0, '#10b981');
-                    gradient.addColorStop(1, '#059669');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Circular clip for image
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.arc(250, 250, 200, 0, Math.PI * 2);
-                    ctx.clip();
-
-                    // Draw image to fill circle
-                    const size = Math.max(img.width, img.height);
-                    const scale = 400 / Math.min(img.width, img.height);
-                    ctx.drawImage(img, 250 - (img.width * scale) / 2, 250 - (img.height * scale) / 2, img.width * scale, img.height * scale);
-                    ctx.restore();
-
-                    // Circle border
-                    ctx.strokeStyle = 'white';
-                    ctx.lineWidth = 8;
-                    ctx.beginPath();
-                    ctx.arc(250, 250, 204, 0, Math.PI * 2);
-                    ctx.stroke();
-                    break;
-                }
-
-                case 'ad': {
-                    // Instagram story size (1080x1920)
-                    canvas.width = 1080;
-                    canvas.height = 1920;
-
-                    // Vibrant gradient
-                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                    gradient.addColorStop(0, '#f97316');
-                    gradient.addColorStop(0.5, '#ef4444');
-                    gradient.addColorStop(1, '#ec4899');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Product image
-                    const scale = Math.min(800 / img.width, 800 / img.height);
-                    const newWidth = img.width * scale;
-                    const newHeight = img.height * scale;
-                    const x = (canvas.width - newWidth) / 2;
-                    const y = (canvas.height - newHeight) / 2 - 100;
-
-                    // Shadow and image
-                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-                    ctx.shadowBlur = 50;
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(x - 30, y - 30, newWidth + 60, newHeight + 60);
-                    ctx.shadowBlur = 0;
-                    ctx.drawImage(img, x, y, newWidth, newHeight);
-
-                    // Add text
-                    ctx.fillStyle = 'white';
-                    ctx.font = 'bold 80px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('SPECIAL OFFER', canvas.width / 2, canvas.height - 300);
-                    ctx.font = '50px Arial';
-                    ctx.fillText('Shop Now →', canvas.width / 2, canvas.height - 200);
-                    break;
-                }
-
-                case 'product': {
-                    // Square product photo with white background
-                    const size = Math.max(img.width, img.height) + 200;
-                    canvas.width = size;
-                    canvas.height = size;
-
-                    // White background
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Soft shadow
-                    ctx.shadowColor = 'rgba(0,0,0,0.15)';
-                    ctx.shadowBlur = 60;
-                    ctx.shadowOffsetY = 20;
-
-                    // Center product
-                    const x = (canvas.width - img.width) / 2;
-                    const y = (canvas.height - img.height) / 2;
-                    ctx.drawImage(img, x, y);
-                    break;
-                }
-
                 case 'enhance':
-                case 'background':
-                default: {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.filter = action.id === 'enhance'
-                        ? 'brightness(1.15) contrast(1.15) saturate(1.25)'
-                        : 'brightness(1.2) contrast(1.3) saturate(1.1)';
-                    ctx.drawImage(img, 0, 0);
+                    ctx.filter = 'brightness(1.15) contrast(1.15) saturate(1.25)';
                     break;
-                }
+                case 'banner':
+                    ctx.filter = 'brightness(1.1) contrast(1.2) saturate(1.3)';
+                    break;
+                case 'profile':
+                    ctx.filter = 'brightness(1.05) sepia(0.1)';
+                    break;
+                case 'ad':
+                    ctx.filter = 'brightness(1.1) contrast(1.2) saturate(1.4)';
+                    break;
+                default:
+                    ctx.filter = 'brightness(1.1) contrast(1.1)';
             }
 
-            const processedImage = canvas.toDataURL('image/png', 1.0);
-
-            setTimeout(() => {
-                setIsGenerating(false);
-                setGeneratedImage(processedImage);
-            }, 1500);
+            ctx.drawImage(img, 0, 0);
+            setGeneratedImage(canvas.toDataURL('image/png', 1.0));
         };
         img.src = selectedImage;
     };
@@ -226,7 +168,7 @@ const ImageUpload = () => {
         if (generatedImage) {
             const link = document.createElement('a');
             link.href = generatedImage;
-            link.download = 'generated-image.jpg';
+            link.download = `${selectedAction?.id || 'generated'}-image.png`;
             link.click();
         }
     };
@@ -236,6 +178,7 @@ const ImageUpload = () => {
         setGeneratedImage(null);
         setSelectedAction(null);
         setIsGenerating(false);
+        setError(null);
     };
 
     return (
@@ -260,6 +203,21 @@ const ImageUpload = () => {
                         </p>
                     </motion.div>
                 </div>
+
+                {/* Error Alert */}
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-700"
+                    >
+                        <AlertCircle className="w-5 h-5" />
+                        <span>{error}</span>
+                        <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </motion.div>
+                )}
 
                 {/* Main Container */}
                 <motion.div
@@ -325,7 +283,9 @@ const ImageUpload = () => {
                                                     <p className="mt-4 text-lg font-semibold text-indigo-700">
                                                         Generating {selectedAction?.label}...
                                                     </p>
-                                                    <p className="mt-2 text-sm text-gray-500">This may take a few seconds</p>
+                                                    <p className="mt-2 text-sm text-gray-500">
+                                                        {progressText || 'Processing with AI (runs locally, may take a moment)'}
+                                                    </p>
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
@@ -407,12 +367,12 @@ const ImageUpload = () => {
                                 <div className="relative rounded-2xl overflow-hidden bg-gray-50 border-2 border-indigo-200 ring-4 ring-indigo-500/10">
                                     <span className={`absolute top-4 left-4 px-3 py-1 bg-gradient-to-r ${selectedAction?.color} text-white rounded-lg text-xs font-medium flex items-center gap-1`}>
                                         <Sparkles className="w-3 h-3" />
-                                        Generated
+                                        AI Generated
                                     </span>
                                     <img
                                         src={generatedImage}
                                         alt="Generated"
-                                        className="w-full h-64 object-contain brightness-110 contrast-105 saturate-110"
+                                        className="w-full h-64 object-contain"
                                     />
                                 </div>
                             </div>
@@ -434,7 +394,6 @@ const ImageUpload = () => {
                         </motion.div>
                     )}
                 </motion.div>
-
             </div>
         </section>
     );
