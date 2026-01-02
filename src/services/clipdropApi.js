@@ -42,7 +42,8 @@ export const removeBackground = async (imageDataURL) => {
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
         const blob = await response.blob();
@@ -70,7 +71,8 @@ export const enhanceImage = async (imageDataURL) => {
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
         const blob = await response.blob();
@@ -97,7 +99,8 @@ export const replaceBackground = async (imageDataURL, prompt = "professional pro
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
         const blob = await response.blob();
@@ -123,7 +126,8 @@ export const generateImage = async (prompt) => {
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
         const blob = await response.blob();
@@ -149,7 +153,8 @@ export const reimagineImage = async (imageDataURL) => {
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
         const blob = await response.blob();
@@ -176,7 +181,8 @@ export const cleanupImage = async (imageDataURL, maskDataURL) => {
         });
 
         if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
 
         const blob = await response.blob();

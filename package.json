@@ -5,16 +5,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@imagekit/react": "^5.0.1",
     "@imgly/background-removal": "^1.7.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
     "framer-motion": "^12.23.25",
+    "imagekit": "^6.0.0",
+    "imagekitio-react": "^4.3.0",
     "lucide-react": "^0.556.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
