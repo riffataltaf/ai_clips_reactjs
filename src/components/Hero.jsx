@@ -85,7 +85,21 @@ const Hero = () => {
                         <img
                             src={HeroShowcaseImg}
                             alt="Product Demo"
-                            className="w-full h-auto object-cover"
+                            className="w-full h-auto object-cov
+                             
+                            \   
+                               
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                                                                                                                                          er"
                         />
                         <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 p-3 bg-white rounded-2xl shadow-xl animate-float">
                             <img
