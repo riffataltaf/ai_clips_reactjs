@@ -16,13 +16,11 @@ const imagekit = new ImageKit({
 // Authentication endpoint for ImageKit frontend uploads
 app.get('/auth', (req, res) => {
     try {
-        // Expire session in 30 minutes
-        const expire = Math.floor(Date.now() / 1000) + 1800;
-
-        // Generate security tokens
-        const authParams = imagekit.getAuthenticationParameters(null, { expire });
-
-        res.json(authParams);
+        const authParams = imagekit.getAuthenticationParameters();
+        res.json({
+            ...authParams,
+            publicKey: "public_fsnLsKXvUh7akxVAunC53JvbhiQ="
+        });
     } catch (error) {
         console.error('ImageKit Auth Error:', error);
         res.status(500).json({ error: error.message });
